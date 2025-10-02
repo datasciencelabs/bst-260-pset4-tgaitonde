@@ -83,18 +83,23 @@ population <- resp_body_json(response, simplifyVector = TRUE) #assign variable p
 #| warning: false
 library(tidyverse)
 library(janitor)
+
 population <- population |> ## Use janitor row to names function
   row_to_names(row_number = 1) |>
   as_tibble() |> # convert to tibble
-  select(-"state") |> # remove state column
-  rename("state_name" = "NAME") |> # rename state column to state_name
-  pivot_longer(-"state_name", names_to = "Year", values_to = "Population") |> # use pivot_longer to combine years into 2 column
-  mutate(Year=gsub("^POP_", "", Year)) |>
-  mutate(Population = as.numeric(Population), Year = as.numeric(Year)) |>   # parse all relevant columns to numeric
-  mutate(state_abb = case_when(   # use case_when to add abbreviations for DC and PR
+  select(-state) |> # remove state column
+  rename(state_name = NAME) |> # rename state column to state_name
+  pivot_longer(cols = starts_with("POP"), 
+               names_to = "year", 
+               values_to = "population") |> # use pivot_longer to combine years into 2 column
+  mutate(Year=gsub("^POP_", "", year)) |>
+  mutate(
+    population = as.numeric(population), 
+    year = as.numeric(year)) |>   # parse all relevant columns to numeric
+  mutate(state = case_when(   # use case_when to add abbreviations for DC and PR
     state_name == "Puerto Rico" ~ "PR", 
     state_name == "District of Columbia" ~ "DC",
-    TRUE ~ state.abb [match(state_name, state.name)]  # add state abbreviations using state.abb variable
+    TRUE ~ state.abb[match(state_name, state.name)]  # add state abbreviations using state.abb variable
   )) 
 ```
 
@@ -102,7 +107,7 @@ population <- population |> ## Use janitor row to names function
 
 ```{r}
 population |> 
-  ggplot(aes(y=reorder(state_name, Population), x = Population)) + #create barplot
+  ggplot(aes(y=reorder(state_name, population), x = population)) + #create barplot
   geom_col() +
   labs(x = "Population", 
       y = "States",
@@ -163,7 +168,9 @@ api <- "https://data.cdc.gov/resource/pwn4-m3yp.json"
 cases_raw <- request(api) |> 
   req_url_query() |>
   req_perform() |> resp_body_json(simplifyVector = TRUE)
-
+  
+#add resp status
+  
 #no the data is not all here, likely due to a limit on the number of rows from the CDC
 ```
 
@@ -196,26 +203,40 @@ cases_raw
 12. For 2020 and 2021, make a time series plot of cases per 100,000 versus time for each state. Stratify the plot by region name. Make sure to label you graph appropriately. 
 
 ```{r}
-cases |> 
-  filter(year = date(2020) | year = date(2021)) |>
-  #inner_join() or left_join and filter by na
-  cases_per_100k = calc |>
-  ggplot() +
+cases_filtered <- cases_raw |> 
+  filter(year(date) == 2020 | year(date) == 2021) |>
+  left_join(population, by = "state") |>   #inner_join() or left_join and filter by na
+  filter(!is.na(state), !is.na(date), !is.na(cases), !is.na(region_name))
+  
+ggplot(cases_filtered, aes(x = date, y = 100000*(cases/population), col=state)) +
   geom_line() +
-  labs +
-  facet_wrap(region_name)
+  labs(x= "Time",
+       y = "Cases Per 100,000 People",
+       title = "Cases Per 100k in 2020-2021") +
+  facet_wrap(~region_name)
+
 ```
 
 13. The dates in the `cases` dataset are stored as character strings. Use the **lubridate** package to properly parse the `date` column, then create a summary table showing the total COVID-19 cases by month and year for 2020 and 2021. The table should have columns for year, month (as month name), and total cases across all states. Order by year and month. Use the **knitr** package and `kable()` function to display the results as a formatted table.
 
 ```{r}
-#cases |>
-  #filter by year 2020, 2021  |>
-# mutate year = year(date), month = month(date)
-#group_by
-#summarize
-#arrange(year, month)
-#kable()
+library(knitr)
+library(dplyr)
+
+
+cases_filtered |>
+  filter(year(date) == 2020 | year(date) == 2021) |>
+  #filter(state %in% population$state) |> #this isn't filtering out USA and NYC
+  mutate(
+    year = year(date),
+    month = month(date, label = TRUE)
+  ) |>
+  group_by(year, month) |>
+  summarize(total_cases = sum(cases, na.rm = TRUE), .groups = "drop") |>
+  arrange(year, month) |>
+  kable(col.names = c("Year", "Month", "Total Cases"))
+
+
 ```
 
 14. The following URL provides additional COVID-19 data from the CDC in JSON format:
@@ -230,20 +251,45 @@ Use **httr2** to download COVID-19 death data from this endpoint. Make sure to r
 
 
 ```{r}
-# Your code here
-#req_url_query(`$limit` = 10000000)
-#filterNA
+
+deaths_url <- "https://data.cdc.gov/resource/9bhg-hcku.json"
+
+deaths <- request(deaths_url) |> 
+  req_url_query(`$limit` = 10000000) |>
+  req_perform() |> 
+  resp_body_json(simplifyVector = TRUE) |>
+  as.tibble() |>
+  select(state, end_date, covid_19_deaths) |>
+  filter(!is.na(state), !is.na(end_date), !is.na(covid_19_deaths)) |>
+  filter(state %in% population$state_name) |> #check this
+  mutate(
+    date = ymd_hms(end_date),
+    deaths = as.numeric(covid_19_deaths)
+  ) |>
+  group_by(state, date) |>
+  summarize(deaths = sum(deaths, na.rm = TRUE), .groups = "drop")
+
+deaths
 ```
 
 15. Using the `deaths` dataset you created, make a bar plot showing the total COVID-19 deaths by state. Show only the top 10 states with the highest death counts. Order the bars from highest to lowest and use appropriate labels and title.
 
 ```{r}
-# Your code here
 
-#death |> filter() |> group_by()
-#|> summarize(), slice_max() |>
- # mutate(reorder states) |>
-  #ggplot()
+deaths |> 
+  filter(!is.na(state), !is.na(date), !is.na(deaths)) |> 
+  group_by(state) |>
+  summarize(deaths = sum(deaths)) |>
+  top_n(10, deaths) |>
+  mutate(
+    state = reorder(state, deaths) 
+  )|>
+  ggplot(aes(x = deaths, y = state)) +
+    geom_col(fill = "darkgreen") +
+   labs (x = "States",
+         y = "Total Deaths By Covid",
+         title = "Highest 10 States in Deaths by Covid From Jan 2020 - Sept 2023")
+    
 
   
 
