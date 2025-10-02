@@ -167,9 +167,13 @@ population
 api <- "https://data.cdc.gov/resource/pwn4-m3yp.json"
 cases_raw <- request(api) |> 
   req_url_query() |>
-  req_perform() |> resp_body_json(simplifyVector = TRUE)
-  
-#add resp status
+  req_perform() |> 
+  resp_body_json(simplifyVector = TRUE)
+
+check_cases_raw <- request(api) |> 
+  req_url_query() |>
+  req_perform() |> 
+  resp_status()
   
 #no the data is not all here, likely due to a limit on the number of rows from the CDC
 ```
@@ -203,10 +207,12 @@ cases_raw
 12. For 2020 and 2021, make a time series plot of cases per 100,000 versus time for each state. Stratify the plot by region name. Make sure to label you graph appropriately. 
 
 ```{r}
+
 cases_filtered <- cases_raw |> 
   filter(year(date) == 2020 | year(date) == 2021) |>
   left_join(population, by = "state") |>   #inner_join() or left_join and filter by na
-  filter(!is.na(state), !is.na(date), !is.na(cases), !is.na(region_name))
+  filter(!is.na(state), !is.na(date), !is.na(cases), !is.na(region_name)) |>
+  filter(year(date) == Year)
   
 ggplot(cases_filtered, aes(x = date, y = 100000*(cases/population), col=state)) +
   geom_line() +
@@ -214,6 +220,7 @@ ggplot(cases_filtered, aes(x = date, y = 100000*(cases/population), col=state)) 
        y = "Cases Per 100,000 People",
        title = "Cases Per 100k in 2020-2021") +
   facet_wrap(~region_name)
+
 
 ```
 
@@ -268,6 +275,11 @@ deaths <- request(deaths_url) |>
   ) |>
   group_by(state, date) |>
   summarize(deaths = sum(deaths, na.rm = TRUE), .groups = "drop")
+
+check_deaths <- request(deaths_url) |> 
+  req_url_query() |>
+  req_perform() |> 
+  resp_status()
 
 deaths
 ```

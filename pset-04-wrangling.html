@@ -294,11 +294,15 @@ Body: empty</code></pre>
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>api <span class="ot">&lt;-</span> <span class="st">"https://data.cdc.gov/resource/pwn4-m3yp.json"</span></span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>cases_raw <span class="ot">&lt;-</span> <span class="fu">request</span>(api) <span class="sc">|&gt;</span> </span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">req_url_query</span>() <span class="sc">|&gt;</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">req_perform</span>() <span class="sc">|&gt;</span> <span class="fu">resp_body_json</span>(<span class="at">simplifyVector =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="co">#add resp status</span></span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="co">#no the data is not all here, likely due to a limit on the number of rows from the CDC</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">req_perform</span>() <span class="sc">|&gt;</span> </span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">resp_body_json</span>(<span class="at">simplifyVector =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>check_cases_raw <span class="ot">&lt;-</span> <span class="fu">request</span>(api) <span class="sc">|&gt;</span> </span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">req_url_query</span>() <span class="sc">|&gt;</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">req_perform</span>() <span class="sc">|&gt;</span> </span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">resp_status</span>()</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a><span class="co">#no the data is not all here, likely due to a limit on the number of rows from the CDC</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>We see exactly 1,000 rows. We should be seeing over <span class="math inline">\(52 \times 3\)</span> rows per state.</p>
 <ol start="11" type="1">
@@ -10714,7 +10718,8 @@ Body: empty</code></pre>
 <div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>cases_filtered <span class="ot">&lt;-</span> cases_raw <span class="sc">|&gt;</span> </span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">year</span>(date) <span class="sc">==</span> <span class="dv">2020</span> <span class="sc">|</span> <span class="fu">year</span>(date) <span class="sc">==</span> <span class="dv">2021</span>) <span class="sc">|&gt;</span></span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(population, <span class="at">by =</span> <span class="st">"state"</span>) <span class="sc">|&gt;</span>   <span class="co">#inner_join() or left_join and filter by na</span></span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(state), <span class="sc">!</span><span class="fu">is.na</span>(date), <span class="sc">!</span><span class="fu">is.na</span>(cases), <span class="sc">!</span><span class="fu">is.na</span>(region_name))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(state), <span class="sc">!</span><span class="fu">is.na</span>(date), <span class="sc">!</span><span class="fu">is.na</span>(cases), <span class="sc">!</span><span class="fu">is.na</span>(region_name)) <span class="sc">|&gt;</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">year</span>(date) <span class="sc">==</span> Year)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
 <pre><code>Warning in left_join(filter(cases_raw, year(date) == 2020 | year(date) == : Detected an unexpected many-to-many relationship between `x` and `y`.
 ℹ Row 1 of `x` matches multiple rows in `y`.
@@ -10768,122 +10773,122 @@ Body: empty</code></pre>
 <tr class="odd">
 <td style="text-align: right;">2020</td>
 <td style="text-align: left;">Jan</td>
-<td style="text-align: right;">22</td>
+<td style="text-align: right;">11</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2020</td>
 <td style="text-align: left;">Feb</td>
-<td style="text-align: right;">136</td>
+<td style="text-align: right;">68</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">2020</td>
 <td style="text-align: left;">Mar</td>
-<td style="text-align: right;">100670</td>
+<td style="text-align: right;">50335</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2020</td>
 <td style="text-align: left;">Apr</td>
-<td style="text-align: right;">1645296</td>
+<td style="text-align: right;">822648</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">2020</td>
 <td style="text-align: left;">May</td>
-<td style="text-align: right;">1233382</td>
+<td style="text-align: right;">616691</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2020</td>
 <td style="text-align: left;">Jun</td>
-<td style="text-align: right;">1285104</td>
+<td style="text-align: right;">642552</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">2020</td>
 <td style="text-align: left;">Jul</td>
-<td style="text-align: right;">3954032</td>
+<td style="text-align: right;">1977016</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2020</td>
 <td style="text-align: left;">Aug</td>
-<td style="text-align: right;">2904786</td>
+<td style="text-align: right;">1452393</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">2020</td>
 <td style="text-align: left;">Sep</td>
-<td style="text-align: right;">2803834</td>
+<td style="text-align: right;">1401917</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2020</td>
 <td style="text-align: left;">Oct</td>
-<td style="text-align: right;">3217864</td>
+<td style="text-align: right;">1608932</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">2020</td>
 <td style="text-align: left;">Nov</td>
-<td style="text-align: right;">7774444</td>
+<td style="text-align: right;">3887222</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2020</td>
 <td style="text-align: left;">Dec</td>
-<td style="text-align: right;">13815080</td>
+<td style="text-align: right;">6907540</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">2021</td>
 <td style="text-align: left;">Jan</td>
-<td style="text-align: right;">11298230</td>
+<td style="text-align: right;">5649115</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2021</td>
 <td style="text-align: left;">Feb</td>
-<td style="text-align: right;">5087928</td>
+<td style="text-align: right;">2543964</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">2021</td>
 <td style="text-align: left;">Mar</td>
-<td style="text-align: right;">3857498</td>
+<td style="text-align: right;">1928749</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2021</td>
 <td style="text-align: left;">Apr</td>
-<td style="text-align: right;">3388378</td>
+<td style="text-align: right;">1694189</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">2021</td>
 <td style="text-align: left;">May</td>
-<td style="text-align: right;">1897906</td>
+<td style="text-align: right;">948953</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2021</td>
 <td style="text-align: left;">Jun</td>
-<td style="text-align: right;">969634</td>
+<td style="text-align: right;">484817</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">2021</td>
 <td style="text-align: left;">Jul</td>
-<td style="text-align: right;">2241878</td>
+<td style="text-align: right;">1120939</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2021</td>
 <td style="text-align: left;">Aug</td>
-<td style="text-align: right;">7038814</td>
+<td style="text-align: right;">3519407</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">2021</td>
 <td style="text-align: left;">Sep</td>
-<td style="text-align: right;">9921614</td>
+<td style="text-align: right;">4960807</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2021</td>
 <td style="text-align: left;">Oct</td>
-<td style="text-align: right;">4635708</td>
+<td style="text-align: right;">2317854</td>
 </tr>
 <tr class="odd">
 <td style="text-align: right;">2021</td>
 <td style="text-align: left;">Nov</td>
-<td style="text-align: right;">4578236</td>
+<td style="text-align: right;">2289118</td>
 </tr>
 <tr class="even">
 <td style="text-align: right;">2021</td>
 <td style="text-align: left;">Dec</td>
-<td style="text-align: right;">10586782</td>
+<td style="text-align: right;">5293391</td>
 </tr>
 </tbody>
 </table>
@@ -10918,7 +10923,12 @@ Body: empty</code></pre>
 ℹ Please use `as_tibble()` instead.
 ℹ The signature and semantics have changed, see `?as_tibble`.</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>deaths</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>check_deaths <span class="ot">&lt;-</span> <span class="fu">request</span>(deaths_url) <span class="sc">|&gt;</span> </span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">req_url_query</span>() <span class="sc">|&gt;</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">req_perform</span>() <span class="sc">|&gt;</span> </span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">resp_status</span>()</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>deaths</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 2,340 × 3
    state   date                deaths
